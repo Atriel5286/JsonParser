@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON Parser</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    * {
+      background-color: #262727;
+      color: #e1e2e1;
+    }
+    body { font-family: monospace; }
+    ul { list-style: none; margin: 0; padding-left: 20px; }
+    li { cursor: pointer; padding: 3px 5px; border-radius: 4px; }
+    .collapsed > ul { display: none; }
+    .key { font-weight: bold; }
+    ul > li:nth-child(odd)  { background: #272727; }
+    ul > li:nth-child(even) { background: #191819; }
+    h2 {
+      background-color: #00d2aa;
+      padding: 0;
+    }
+    .remove-btn {
+      position: absolute;
+      right: 5px;
+      font-size: 12px;
+      color: white;
+      background: red;
+      border: none;
+      padding: 2px 5px;
+      border-radius: 3px;
+      cursor: pointer;
+      display: none; /* hidden by default */
+    }
+    li:hover .remove-btn {
+      display: inline-block;
+    }
+  </style>
+</head>
+<h2>Upload a JSON File</h2>
+  <input type="file" id="fileInput">
+  <div id="viewer"></div>
+
+  <script>
+    function buildTree(data) {
+      const ul = document.createElement("ul");
+
+      const addRemoveButton = (li) => {
+        const btn = document.createElement("button");
+        btn.textContent = "✖";
+        btn.classList.add("remove-btn");
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation(); // don’t trigger collapse toggle
+          li.remove();
+        });
+        li.appendChild(btn);
+      };
+
+      if (Array.isArray(data)) {
+        data.forEach((item, i) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<span class="key">[${i}]</span>`;
+          addRemoveButton(li);
+
+          if (typeof item === "object" && item !== null) {
+            li.classList.add("collapsed");
+            li.appendChild(buildTree(item));
+            li.querySelector(".key").addEventListener("click", toggleCollapse);
+          } else {
+            li.innerHTML += `: ${item}`;
+          }
+          ul.appendChild(li);
+        });
+      } else if (typeof data === "object" && data !== null) {
+        for (const key in data) {
+          const li = document.createElement("li");
+          li.innerHTML = `<span class="key">${key}</span>`;
+          addRemoveButton(li);
+
+          if (typeof data[key] === "object" && data[key] !== null) {
+            li.classList.add("collapsed");
+            li.appendChild(buildTree(data[key]));
+            li.querySelector(".key").addEventListener("click", toggleCollapse);
+          } else {
+            li.innerHTML += `: ${data[key]}`;
+          }
+          ul.appendChild(li);
+        }
+      }
+
+      return ul;
+    }
+
+    function toggleCollapse(event) {
+      event.stopPropagation();
+      this.parentElement.classList.toggle("collapsed");
+    }
+
+    document.getElementById("fileInput").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          const json = JSON.parse(event.target.result);
+          const viewer = document.getElementById("viewer");
+          viewer.innerHTML = "";
+          viewer.appendChild(buildTree(json));
+        } catch (err) {
+          document.getElementById("viewer").textContent = "Invalid JSON!";
+        }
+      };
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>
